@@ -15,7 +15,7 @@ async function main() {
   const ownerUser = await prisma.user.upsert({
     where: { email: "owner@subscriptionos.local" },
     update: {
-      passwordHash: "$2b$10$VYO494NCxltIItRXQ8IYUuZ9Uh3pTIHje8pGHvNHkdy8/xl81HnAG",
+      passwordHash: "$2b$10$LNZLoz2rRyB7gtLKDt1AF.CYSQKEbVIaNhjLTKp3P345WMzOGV7Gy",
     },
     create: {
       userId: "USR-0000000000000001",
@@ -29,14 +29,16 @@ async function main() {
     },
   });
 
-  const adminUser = await prisma.user.upsert({
-    where: { email: "admin@subscriptionos.local" },
-    update: {},
+    const adminUser = await prisma.user.upsert({
+      where: { email: "admin@subscriptionos.local" },
+      update: {
+        passwordHash: "$2b$10$LNZLoz2rRyB7gtLKDt1AF.CYSQKEbVIaNhjLTKp3P345WMzOGV7Gy",
+      },
     create: {
       userId: "USR-0000000000000002",
       fullName: "System Admin",
       email: "admin@subscriptionos.local",
-      passwordHash: "$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQOEg6Lruj3vjPGga31lW",
+      passwordHash: "$2b$10$LNZLoz2rRyB7gtLKDt1AF.CYSQKEbVIaNhjLTKp3P345WMzOGV7Gy",
       role: "Admin",
       status: "Active",
       createdAt: new Date(),

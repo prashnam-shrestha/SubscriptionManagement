@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { ActivityLogService } from '../common/activity-log/activity-log.service';
+import { RedisService } from '../common/services/redis.service';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 
@@ -15,6 +16,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly redisService: RedisService,
     private readonly activityLog: ActivityLogService,
   ) {}
 
@@ -44,7 +46,21 @@ export class AuthService {
       role: user.role,
     };
 
-    const accessToken = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign(payload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: '15m',
+    });
+
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: '7d',
+    });
+
+    await this.redisService.setRefreshToken(
+      user.userId,
+      refreshToken,
+      7 * 24 * 60 * 60,
+    );
 
     // Audit Log: User Login
     await this.activityLog.logActivity({
@@ -58,6 +74,7 @@ export class AuthService {
 
     return {
       accessToken,
+      refreshToken,
       user: {
         userId: user.userId,
         fullName: user.fullName,
@@ -68,8 +85,40 @@ export class AuthService {
     };
   }
 
+  async refresh(refreshToken: string) {
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+
+      const storedToken = await this.redisService.getRefreshToken(payload.sub);
+
+      if (!storedToken || storedToken !== refreshToken) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      const accessToken = this.jwtService.sign(
+        {
+          sub: payload.sub,
+          email: payload.email,
+          role: payload.role,
+        },
+        {
+          secret: process.env.JWT_ACCESS_SECRET,
+          expiresIn: '15m',
+        },
+      );
+
+      return { accessToken };
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
   async logout(userId: string, ipAddress?: string): Promise<void> {
-    // Audit Log: User Logout
+
+    await this.redisService.deleteRefreshToken(userId);
+
     await this.activityLog.logActivity({
       userId,
       action: 'Logout',

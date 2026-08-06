@@ -351,3 +351,4 @@ ALTER TABLE "PinHistory" ADD CONSTRAINT "PinHistory_ChangedBy_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "ActivityLog" ADD CONSTRAINT "ActivityLog_UserID_fkey" FOREIGN KEY ("UserID") REFERENCES "Users"("UserID") ON DELETE RESTRICT ON UPDATE CASCADE;
+

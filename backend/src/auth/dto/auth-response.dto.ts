@@ -8,5 +8,6 @@ export class UserPayloadDto {
 
 export class AuthResponseDto {
   accessToken!: string;
+  refreshToken!: string;
   user!: UserPayloadDto;
 }
