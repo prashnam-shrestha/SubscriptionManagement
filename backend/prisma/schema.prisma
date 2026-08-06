@@ -1,0 +1,271 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  userId       String   @id @map("UserID") @db.VarChar(20)
+  fullName     String   @map("FullName") @db.VarChar(100)
+  email        String   @unique @map("Email") @db.VarChar(255)
+  passwordHash String   @map("PasswordHash") @db.Text
+  role         String   @map("Role") @db.VarChar(20)
+  status       String   @default("Active") @map("Status") @db.VarChar(20)
+  createdAt    DateTime @map("CreatedAt")
+  updatedAt    DateTime @map("UpdatedAt")
+
+  activityLogs   ActivityLog[]
+  revenues       Revenue[]
+  renewalHistory RenewalHistory[]
+  pinHistory     PinHistory[]
+
+  @@map("Users")
+}
+
+model Customer {
+  customerId String   @id @map("CustomerID") @db.VarChar(20)
+  fullName   String   @map("FullName") @db.VarChar(100)
+  phone      String   @unique @map("Phone") @db.VarChar(20)
+  username   String?  @map("Username") @db.VarChar(100)
+  platform   String   @map("Platform") @db.VarChar(30)
+  notes      String?  @map("Notes") @db.Text
+  status     String   @default("Active") @map("Status") @db.VarChar(20)
+  createdAt  DateTime @map("CreatedAt")
+  updatedAt  DateTime @map("UpdatedAt")
+
+  subscriptions Subscription[]
+
+  @@index([phone])
+  @@index([fullName])
+  @@map("Customers")
+}
+
+model Product {
+  productId     String   @id @map("ProductID") @db.VarChar(20)
+  productCode   String?  @unique @map("ProductCode") @db.VarChar(20)
+  productName   String   @map("ProductName") @db.VarChar(100)
+  serviceTypeId String   @map("ServiceTypeID") @db.VarChar(20)
+  price         Decimal  @map("Price") @db.Decimal(10, 2)
+  durationDays  Int      @map("DurationDays")
+  status        String   @default("Active") @map("Status") @db.VarChar(20)
+  createdAt     DateTime @map("CreatedAt")
+  updatedAt     DateTime @map("UpdatedAt")
+
+  serviceType      ServiceType       @relation(fields: [serviceTypeId], references: [serviceTypeId])
+  subscriptions    Subscription[]
+  pendingCustomers PendingCustomer[]
+
+  @@index([productCode])
+  @@index([serviceTypeId])
+  @@map("Products")
+}
+
+model MasterAccount {
+  masterAccountId   String   @id @map("MasterAccountID") @db.VarChar(20)
+  email             String   @unique @map("Email") @db.VarChar(255)
+  encryptedPassword String   @map("EncryptedPassword") @db.Text
+  nickname          String?  @map("Nickname") @db.VarChar(100)
+  status            String   @default("Active") @map("Status") @db.VarChar(20)
+  notes             String?  @map("Notes") @db.Text
+  createdAt         DateTime @map("CreatedAt")
+  updatedAt         DateTime @map("UpdatedAt")
+
+  services Service[]
+
+  @@index([email])
+  @@map("MasterAccounts")
+}
+
+model ServiceType {
+  serviceTypeId          String   @id @map("ServiceTypeID") @db.VarChar(20)
+  name                   String   @unique @map("Name") @db.VarChar(100)
+  defaultProfileCapacity Int      @map("DefaultProfileCapacity")
+  createdAt              DateTime @map("CreatedAt")
+  updatedAt              DateTime @map("UpdatedAt")
+
+  products Product[]
+  services Service[]
+
+  @@index([name])
+  @@map("ServiceTypes")
+}
+
+model Service {
+  serviceId       String   @id @map("ServiceID") @db.VarChar(20)
+  masterAccountId String   @map("MasterAccountID") @db.VarChar(20)
+  serviceTypeId   String   @map("ServiceTypeID") @db.VarChar(20)
+  status          String   @default("Active") @map("Status") @db.VarChar(20)
+  createdAt       DateTime @map("CreatedAt")
+  updatedAt       DateTime @map("UpdatedAt")
+
+  masterAccount     MasterAccount      @relation(fields: [masterAccountId], references: [masterAccountId])
+  serviceType       ServiceType        @relation(fields: [serviceTypeId], references: [serviceTypeId])
+  streamingProfiles StreamingProfile[]
+
+  @@unique([masterAccountId, serviceTypeId])
+  @@index([masterAccountId])
+  @@index([serviceTypeId])
+  @@map("Services")
+}
+
+model StreamingProfile {
+  streamingProfileId String   @id @map("StreamingProfileID") @db.VarChar(20)
+  serviceId          String   @map("ServiceID") @db.VarChar(20)
+  profileName        String   @map("ProfileName") @db.VarChar(50)
+  encryptedPIN       String   @map("EncryptedPIN") @db.Text
+  capacity           Int      @map("Capacity")
+  status             String   @default("Available") @map("Status") @db.VarChar(20)
+  createdAt          DateTime @map("CreatedAt")
+  updatedAt          DateTime @map("UpdatedAt")
+
+  service      Service       @relation(fields: [serviceId], references: [serviceId])
+  assignments  Assignment[]
+  pinHistories PinHistory[]
+
+  @@index([serviceId])
+  @@map("StreamingProfiles")
+}
+
+model PendingCustomer {
+  pendingCustomerId String   @id @map("PendingCustomerID") @db.VarChar(20)
+  fullName          String   @map("FullName") @db.VarChar(100)
+  phone             String   @map("Phone") @db.VarChar(20)
+  username          String?  @map("Username") @db.VarChar(100)
+  platform          String   @map("Platform") @db.VarChar(30)
+  productId         String   @map("ProductID") @db.VarChar(20)
+  status            String   @default("Pending") @map("Status") @db.VarChar(20)
+  submittedAt       DateTime @map("SubmittedAt")
+
+  product Product @relation(fields: [productId], references: [productId])
+
+  @@index([phone])
+  @@index([status])
+  @@map("PendingCustomers")
+}
+
+model Subscription {
+  subscriptionId String   @id @map("SubscriptionID") @db.VarChar(20)
+  customerId     String   @map("CustomerID") @db.VarChar(20)
+  productId      String   @map("ProductID") @db.VarChar(20)
+  startDate      DateTime @map("StartDate") @db.Date
+  expiryDate     DateTime @map("ExpiryDate") @db.Date
+  amountPaid     Decimal  @map("AmountPaid") @db.Decimal(10, 2)
+  status         String   @map("Status") @db.VarChar(20)
+  createdAt      DateTime @map("CreatedAt")
+  updatedAt      DateTime @map("UpdatedAt")
+
+  customer         Customer         @relation(fields: [customerId], references: [customerId])
+  product          Product          @relation(fields: [productId], references: [productId])
+  assignments      Assignment[]
+  revenues         Revenue[]
+  renewalHistories RenewalHistory[]
+
+  @@index([customerId])
+  @@index([productId])
+  @@index([expiryDate])
+  @@index([status])
+  @@map("Subscriptions")
+}
+
+model Assignment {
+  assignmentId       String    @id @map("AssignmentID") @db.VarChar(20)
+  subscriptionId     String    @map("SubscriptionID") @db.VarChar(20)
+  streamingProfileId String    @map("StreamingProfileID") @db.VarChar(20)
+  assignedAt         DateTime  @map("AssignedAt")
+  endedAt            DateTime? @map("EndedAt")
+  status             String    @map("Status") @db.VarChar(20)
+  reasonForChange    String?   @map("ReasonForChange") @db.Text
+  createdAt          DateTime  @map("CreatedAt")
+
+  subscription     Subscription     @relation(fields: [subscriptionId], references: [subscriptionId])
+  streamingProfile StreamingProfile @relation(fields: [streamingProfileId], references: [streamingProfileId])
+
+  @@index([subscriptionId])
+  @@index([streamingProfileId])
+  @@index([status])
+  @@map("Assignments")
+}
+
+model Revenue {
+  revenueId      String   @id @map("RevenueID") @db.VarChar(20)
+  subscriptionId String   @map("SubscriptionID") @db.VarChar(20)
+  amount         Decimal  @map("Amount") @db.Decimal(10, 2)
+  paymentMethod  String   @map("PaymentMethod") @db.VarChar(30)
+  receivedDate   DateTime @map("ReceivedDate") @db.Date
+  createdBy      String   @map("CreatedBy") @db.VarChar(20)
+  createdAt      DateTime @map("CreatedAt")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [subscriptionId])
+  creator      User         @relation(fields: [createdBy], references: [userId])
+
+  @@index([subscriptionId])
+  @@index([receivedDate])
+  @@map("Revenue")
+}
+
+model RenewalHistory {
+  renewalId      String   @id @map("RenewalID") @db.VarChar(20)
+  subscriptionId String   @map("SubscriptionID") @db.VarChar(20)
+  oldExpiryDate  DateTime @map("OldExpiryDate") @db.Date
+  newExpiryDate  DateTime @map("NewExpiryDate") @db.Date
+  amountPaid     Decimal  @map("AmountPaid") @db.Decimal(10, 2)
+  renewedBy      String   @map("RenewedBy") @db.VarChar(20)
+  renewedAt      DateTime @map("RenewedAt")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [subscriptionId])
+  renower      User         @relation(fields: [renewedBy], references: [userId])
+
+  @@index([subscriptionId])
+  @@map("RenewalHistory")
+}
+
+model PinHistory {
+  pinHistoryId       String   @id @map("PinHistoryID") @db.VarChar(20)
+  streamingProfileId String   @map("StreamingProfileID") @db.VarChar(20)
+  oldEncryptedPIN    String   @map("OldEncryptedPIN") @db.Text
+  newEncryptedPIN    String   @map("NewEncryptedPIN") @db.Text
+  changedBy          String   @map("ChangedBy") @db.VarChar(20)
+  changedAt          DateTime @map("ChangedAt")
+
+  streamingProfile StreamingProfile @relation(fields: [streamingProfileId], references: [streamingProfileId])
+  changer          User             @relation(fields: [changedBy], references: [userId])
+
+  @@index([streamingProfileId])
+  @@map("PinHistory")
+}
+
+model Notification {
+  notificationId  String    @id @map("NotificationID") @db.VarChar(20)
+  type            String    @map("Type") @db.VarChar(50)
+  message         String    @map("Message") @db.Text
+  relatedEntity   String?   @map("RelatedEntity") @db.VarChar(30)
+  relatedEntityId String?   @map("RelatedEntityID") @db.VarChar(20)
+  status          String    @default("Unread") @map("Status") @db.VarChar(20)
+  createdAt       DateTime  @map("CreatedAt")
+  readAt          DateTime? @map("ReadAt")
+
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@map("Notifications")
+}
+
+model ActivityLog {
+  logId     String   @id @map("LogID") @db.VarChar(20)
+  userId    String   @map("UserID") @db.VarChar(20)
+  action    String   @map("Action") @db.VarChar(100)
+  entity    String   @map("Entity") @db.VarChar(50)
+  entityId  String   @map("EntityID") @db.VarChar(20)
+  details   String?  @map("Details") @db.Text
+  ipAddress String?  @map("IPAddress") @db.VarChar(45)
+  createdAt DateTime @map("CreatedAt")
+
+  user User @relation(fields: [userId], references: [userId])
+
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("ActivityLog")
+}
