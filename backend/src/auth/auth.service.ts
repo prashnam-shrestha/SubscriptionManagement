@@ -47,12 +47,16 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_ACCESS_SECRET,
+      secret:
+        process.env.JWT_ACCESS_SECRET ||
+        'subscriptionos_default_jwt_access_secret_2026',
       expiresIn: '15m',
     });
 
     const refreshToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_REFRESH_SECRET,
+      secret:
+        process.env.JWT_REFRESH_SECRET ||
+        'subscriptionos_default_jwt_refresh_secret_2026',
       expiresIn: '7d',
     });
 

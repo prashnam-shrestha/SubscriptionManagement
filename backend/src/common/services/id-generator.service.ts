@@ -17,6 +17,7 @@ export enum EntityPrefix {
   PIN_HISTORY = 'PIN-',
   NOTIFICATION = 'NTF-',
   ACTIVITY_LOG = 'LOG-',
+  CREDENTIAL_TEMPLATE = 'CRT-',
 }
 
 @Injectable()

@@ -120,7 +120,7 @@ model StreamingProfile {
   createdAt          DateTime @map("CreatedAt")
   updatedAt          DateTime @map("UpdatedAt")
 
-  service      Service       @relation(fields: [serviceId], references: [serviceId])
+  service      Service      @relation(fields: [serviceId], references: [serviceId])
   assignments  Assignment[]
   pinHistories PinHistory[]
 
@@ -268,4 +268,25 @@ model ActivityLog {
   @@index([entity])
   @@index([createdAt])
   @@map("ActivityLog")
+}
+
+model Settings {
+  id                   String   @id @default("SETTINGS-001")
+  businessName         String
+  businessContactEmail String?
+  businessContactPhone String?
+  currency             String   @default("NPR")
+  assignmentStrategy   String   @default("LowestOccupancy")
+  pinRotationPolicy    String   @default("Manual")
+  preferences          Json?
+  updatedAt            DateTime @updatedAt
+}
+
+model CredentialTemplate {
+  id           String   @id
+  name         String
+  templateText String   @db.Text
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
